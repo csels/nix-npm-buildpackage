@@ -128,6 +128,7 @@ in rec {
       packageJson = src + "/package.json";
       packageLockJson = src + "/package-lock.json";
       info = fromJSON (readFile packageJson);
+      workspaces = if info ? "workspaces" then info.workspaces else [];
       lock = fromJSON (readFile packageLockJson);
     in
       assert asserts.assertMsg (versionAtLeast nodejs.version "10.20.0") "nix-npm-buildPackages requires at least npm v6.13.5";
@@ -160,6 +161,13 @@ in rec {
         # do not run the toplevel lifecycle scripts, we only do dependencies
         cp ${toFile "package.json" (builtins.toJSON (info // { scripts = { }; }))} ./package.json
         cp ${toFile "package-lock.json" (builtins.toJSON lock)} ./package-lock.json
+
+        # Make sure the workspaces' package.json are present
+        # package.lock should not be applicable to workspaces
+        for ws in ${toString workspaces}; do
+          mkdir -p ./$ws
+          cp ${src}/$ws/package.json ./$ws/package.json
+        done
 
         echo 'building npm cache'
         chmod u+w ./package-lock.json
