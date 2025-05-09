@@ -164,10 +164,12 @@ in rec {
 
         # Make sure the workspaces' package.json are present
         # package.lock should not be applicable to workspaces
-        for ws in ${toString workspaces}; do
-          mkdir -p ./$ws
-          cp ${src}/$ws/package.json ./$ws/package.json
-        done
+      '' + (builtins.concatStringsSep "\n" (builtins.map (ws:
+        let workspaceFile = toFile "package.json" (readFile (src + "/" + ws + "/package.json")); in ''
+          mkdir -p ./${ws}
+          cp ${workspaceFile} ./${ws}/package.json
+        ''
+      ) workspaces)) + ''
 
         echo 'building npm cache'
         chmod u+w ./package-lock.json
